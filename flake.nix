@@ -70,7 +70,7 @@
           packages = with nixlib.lib;
             utils.lib.exportPackages self.overlays channels
             // flip mapAttrs' channels
-              (name: channel: nameValuePair "dev/${name}" (channel.devshell.mkShell {
+              (name: channel: nameValuePair "devshell/${name}" (channel.devshell.mkShell {
                 name = "${projName}-devShell-${name}";
                 env = [
                   {
