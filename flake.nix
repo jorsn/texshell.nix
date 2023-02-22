@@ -17,7 +17,9 @@
     # nixpkgs
 
     unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    nixos.url = "github:NixOS/nixpkgs/release-22.05";
+    nixos.url = "github:NixOS/nixpkgs/release-22.11";
+    tl2021.url # latest nixpkgs commit with texlive 2021
+      = "github:NixOS/nixpkgs/cb2f60a2d13a9da2510fa172c0e69ccbf14f18b7";
     tl2020.url # latest nixpkgs commit with texlive 2020
       = "github:NixOS/nixpkgs/ca44268569be4eb348b24bc0705e0482b9ea87a1";
     tl2012.url # latest nixpkgs commit with texlive 2012 (nearest to ScholarOne's 2013)
@@ -25,7 +27,7 @@
     tl2012.flake = false;
 
     ## defaults
-    tl2021.follows = "nixos";
+    tl2022.follows = "unstable";
     arxiv.follows = "tl2020"; # see https://arxiv.org/help/faq/texlive
     nixpkgs.follows = "nixos";
     default.follows = "nixpkgs";
@@ -44,23 +46,88 @@
 
       inherit self inputs;
 
-      overlays = utils.lib.exportOverlays { inherit (self) pkgs inputs; };
+      #overlays = utils.lib.exportOverlays { inherit (self) pkgs inputs; };
+      overlays =
+        utils.lib.exportOverlays { inherit (self) pkgs inputs; }
+        #//
+      #{
+        #default = self.overlays.default
+        ;
 
       channels.tl2012.input = inputs.default;
       channels.tl2012.overlaysBuilder = channels: [
         (final: prev: {
-          texlive = with import inputs.tl2012 { inherit (prev) system; }; {
-            combined.scheme-full = lib.setName "texlive-full" (texLiveAggregationFun {
-              paths = [
-                texLive texLiveExtra lmodern texLiveCMSuper texLiveLatexXColor
-                texLivePGF texLiveBeamer tipa tex4ht texinfo5
-              ];
-            });
-          };
+          texlive = with nixlib.lib;
+            prev.texlive
+            //
+            {
+              combined.scheme-full =
+                with prev; with import inputs.tl2012 { inherit (prev) system; };
+                lib.setName "texlive-full" (texLiveAggregationFun {
+                  paths = [
+                    texLive texLiveExtra lmodern texLiveCMSuper texLiveLatexXColor
+                    texLivePGF texLiveBeamer tipa tex4ht texinfo5
+                  ];
+                });
+              mkShell = let
+                p = final.texlive.combined.scheme-full;
+              in prev.texlive.configureShell {
+                texdocCmd = "LC_ALL=C ${p}/bin/texlua ${p}/libexec/x86_64/texdoc";
+              };
+            };
+        })
+      ];
+      channels.tl2020.overlaysBuilder = channels: [
+        (final: prev: {
+          texlive = with nixlib.lib;
+            prev.texlive
+            // {
+              mkShell = prev.texlive.configureShell { texdocCmd = "${channels.default.texlive.combined.scheme-full}/bin/texdoc"; };
+            };
         })
       ];
 
-      sharedOverlays = [ devshell.overlay ];
+      sharedOverlays = [
+        devshell.overlay
+        (final: prev: with nixlib.lib; {
+          texlive = optionalAttrs (prev ? texlive) prev.texlive
+            // {
+            configureShell =
+              { texlivePkg ? final.texlive.combined.scheme-full
+              , texdocCmd ? "${texlivePkg}/bin/texdoc"
+              }:
+              { name, packages ? [] }:
+              final.devshell.mkShell {
+                inherit name;
+                commands = [
+                  { name = "texdoc"; category = "documentation"; help = "TeX documentation";
+                    command = ''${texdocCmd} "$@"'';
+                  }
+                ];
+                packages = packages ++ [ (lowPrio texlivePkg) ];
+              };
+            mkShell = configureShell {};
+          };
+        })
+        (final: prev: with nixlib.lib; {
+          texlive =
+            let
+              tl = prev.texlive;
+              tlDoc = recursiveUpdate tl {
+                combined.scheme-full = tl.combine {
+                  inherit (tl) scheme-full;
+
+                  pkgFilter = pkg:
+                    pkg.tlType != "source"
+                    # add documentation to texlive
+                    # texdoc doesn't work in texlive <= 2020 from nixpkgs.
+                    # prevent double doc packages
+                    && pkg.pname == "core" -> pkg.tlType != "doc";
+                };
+              };
+            in if tl ? bin && toInt tl.bin.core.version >= 2021 then tlDoc else tl;
+        })
+      ];
 
       outputsBuilder = channels:
         let
@@ -70,34 +137,13 @@
           packages = with nixlib.lib;
             utils.lib.exportPackages self.overlays channels
             // flip mapAttrs' channels
-              (name: channel: nameValuePair "devshell/${name}" (channel.devshell.mkShell {
-                name = "${projName}-devShell-${name}";
-                env = [
-                  {
-                    name = "LC_ALL";
-                    value = "C";
-                }];
-                devshell.startup = {
-                  texdoc.text = "alias texdoc='texlua ${channel.texlive.combined.scheme-full}/libexec/x86_64/texdoc'";
-                };
-                packages = [
-                  (if name == "tl2012"
-                    then channel.texlive.combined.scheme-full
-                    else with channel.texlive; combine {
-
-                      inherit scheme-full;
-
-                      pkgFilter = pkg:
-                        pkg.tlType != "source"
-                        && pkg.pname != projName
-                        # texdoc doesn't work in texlive <= 2020 from nixpkgs.
-                        && (pkg.pname == "core" || toInt bin.core.version <= 2020) -> pkg.tlType != "doc";
-                  })
-                ];
-              }))
+              (name': channel: rec {
+                name = "devshell/${name'}";
+                value = channel.texlive.mkShell { name = "${projName}/${name}"; };
+              })
             // { default = self.packages.${system}."devshell/default"; };
 
-          overlay = self.overlays.default;
+          overlay = self.overlays."default/texlive";
 
           apps = {
             texdoc = utils.lib.mkApp { # use this when using texlive <= 2020. Since 2021, texdoc works natively
@@ -105,7 +151,6 @@
               exePath = "/bin/texdoc";
             };
           };
-
         };
 
       templates.default = {
