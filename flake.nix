@@ -54,49 +54,57 @@
         #default = self.overlays.default
         ;
 
-      channels.tl2012.input = inputs.default;
-      channels.tl2012.overlaysBuilder = channels: [
-        (final: prev: {
-          texlive = with nixlib.lib;
-            prev.texlive
-            //
-            {
-              combined.scheme-full =
-                with prev; with import inputs.tl2012 { inherit (prev) system; };
-                lib.setName "texlive-full" (texLiveAggregationFun {
-                  paths = [
-                    texLive texLiveExtra lmodern texLiveCMSuper texLiveLatexXColor
-                    texLivePGF texLiveBeamer tipa tex4ht texinfo5
-                  ];
-                });
-              mkShell = let
-                p = final.texlive.combined.scheme-full;
-              in prev.texlive.configureShell {
-                texdocCmd = "LC_ALL=C ${p}/bin/texlua ${p}/libexec/x86_64/texdoc";
+      channels = with nixlib.lib; {
+        tl2012.input = inputs.default;
+        tl2012.overlaysBuilder = channels: [
+          (final: prev: {
+            texlive =
+              {
+                combined.scheme-full =
+                  with prev; with import inputs.tl2012 { inherit (prev) system; };
+                  lib.setName "texlive-full" (texLiveAggregationFun {
+                    paths = [
+                      texLive texLiveExtra lmodern texLiveCMSuper texLiveLatexXColor
+                      texLivePGF texLiveBeamer tipa tex4ht texinfo5
+                    ];
+                  });
+              mkShell =
+                { name
+                , texlivePkg ? final.texlive.combined.scheme-full
+                , texdocCmd ? "LC_ALL=C ${texlivePkg}/bin/texlua ${texlivePkg}/libexec/x86_64/texdoc"
+                , ...
+                }@args:
+                prev.texlive.mkShell (args // { inherit texdocCmd; });
               };
-            };
-        })
-      ];
-      channels.tl2020.overlaysBuilder = channels: [
-        (final: prev: {
-          texlive = with nixlib.lib;
+          })
+        ];
+      }
+      // genAttrs [ "tl2020" "arxiv" ] (_: {
+        overlaysBuilder = channels: [ (final: prev: {
+          texlive =
             prev.texlive
             // {
-              mkShell = prev.texlive.configureShell { texdocCmd = "${channels.default.texlive.combined.scheme-full}/bin/texdoc"; };
+              mkShell =
+                { name
+                , texdocCmd ? "${channels.default.texlive.combined.scheme-full}/bin/texdoc"
+                , ...
+                }@args:
+                prev.texlive.mkShell (args // { inherit texdocCmd; });
             };
-        })
-      ];
+        }) ];
+      });
 
       sharedOverlays = [
         devshell.overlay
         (final: prev: with nixlib.lib; {
           texlive = optionalAttrs (prev ? texlive) prev.texlive
             // {
-            configureShell =
-              { texlivePkg ? final.texlive.combined.scheme-full
+            mkShell =
+              { name
+              , texlivePkg ? final.texlive.combined.scheme-full
               , texdocCmd ? "${texlivePkg}/bin/texdoc"
+              , packages ? []
               }:
-              { name, packages ? [] }:
               final.devshell.mkShell {
                 inherit name;
                 commands = [
@@ -106,7 +114,6 @@
                 ];
                 packages = packages ++ [ (lowPrio texlivePkg) ];
               };
-            mkShell = configureShell {};
           };
         })
         (final: prev: with nixlib.lib; {
