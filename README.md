@@ -1,9 +1,10 @@
-# ancienTeX.nix
+# texshell.nix
 
-This [Nix] [flake] provides old [TeXlive] versions,
-in particular for academic publishing, e.g.
-on [arXiv][arXiv TeXlive] (TeXlive 2020)
-or [ScholarOne] (TeXlive 2013; using best approximation: 2012).
+This [Nix] [flake] provides easy access to development shells for
+multiple [TeXlive] versions. This is important in particular for academic
+publishing, since, e.g. [arXiv][arXiv TeXlive] uses TeXlive 2020
+and [ScholarOne] still uses TeXlive 2013 (we provide 2012 as best working
+approximation in Nixpkgs).
 
 
 [Nix]: https://nixos.org
@@ -13,47 +14,41 @@ or [ScholarOne] (TeXlive 2013; using best approximation: 2012).
 [ScholarOne]: https://clarivate.com/webofsciencegroup/wp-content/uploads/sites/2/2020/09/Author-LaTex-File-Upload-Manual-ScholarOne-Manuscripts.pdf
 
 
-
-## Configuration
-
-**One option** is to add to your flake
-
-~~~nix
-{
-  inputs.ancienTeX.url = "github:jorsn/ancienTeX.nix";
-
-  outputs = { self, ancienTeX, ... }@inputs:
-    {
-      packages = ancienTeX.inputs.nixlib.lib.recursiveUpdate ancienTeX.packages {
-        <your own packages>
-      };
-    };
-}
-~~~
-If you don't have a flake yet, this can be achieved by running the command
-~~~
-$ nix flake init -t github:jorsn/ancienTeX.nix
-~~~
-
-**Another option** is to either clone this repository and make it your TeX project's top-level directory,
-or to download the files and add to your top-level directory.
-
-
 ## Usage
 
-You can display the available development shells with
+To fire up a shell with TeXlive available, run
+~~~
+$ nix shell github:jorsn/texshell.nix
+~~~
+
+The command can even be simplified by registering texshell in the flake registry:
+~~~
+$ nix registry add texshell github:jorsn/texshell.nix
+~~~
+Then, to get, e.g., TeXlive 2020, run
+~~~
+$ nix shell texshell#tl2020
+~~~
+To have the same TeXlive version as [arXiv] currently uses, run 
+~~~
+$ nix shell texshell#arxiv
+~~~
+This also works for all supported LaTeX versions.
+You can list the available development shells and more, by running
 ~~~
 $ nix flake show
 ~~~
-and enter a development shell for a channel by typing, e.g.,
-~~~
-$ nix shell .#arxiv
-~~~
-or, for the default channel,
-~~~
-$ nix shell
-~~~
 
+
+## Flake Template
+
+To use the dev shell or a particular TeXlive version in your flake,
+you can declare texshell as a flake input.
+
+To initialize a new flake using texshell, you can run
+~~~
+$ nix flake init -t github:jorsn/ancienTeX.nix
+~~~
 
 ## License
 

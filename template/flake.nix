@@ -1,8 +1,8 @@
 {
-  inputs.ancienTeX.url = "github:jorsn/ancienTeX.nix";
+  inputs.texshell.url = "github:jorsn/texshell.nix";
 
-  outputs = { ancienTeX, ... }@inputs:
+  outputs = { texshell, ... }@inputs:
     {
-      inherit (ancienTeX) packages apps;
+      inherit (texshell) packages apps;
     };
 }

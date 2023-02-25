@@ -1,5 +1,5 @@
 {
-  description = "Use old TeXlive versions";
+  description = "Easy dev shells for multiple TeXlive versions";
 
   nixConfig.extra-experimental-features = "nix-command flakes";
 
@@ -46,13 +46,7 @@
 
       inherit self inputs;
 
-      #overlays = utils.lib.exportOverlays { inherit (self) pkgs inputs; };
-      overlays =
-        utils.lib.exportOverlays { inherit (self) pkgs inputs; }
-        #//
-      #{
-        #default = self.overlays.default
-        ;
+      overlays = utils.lib.exportOverlays { inherit (self) pkgs inputs; };
 
       channels = with nixlib.lib; {
         tl2012.input = inputs.default;
@@ -60,6 +54,7 @@
           (final: prev: {
             texlive =
               {
+                # back then, the TeX infrastructure in Nixpkgs was very different.
                 combined.scheme-full =
                   with prev; with import inputs.tl2012 { inherit (prev) system; };
                   lib.setName "texlive-full" (texLiveAggregationFun {
@@ -79,6 +74,7 @@
           })
         ];
       }
+      # prior to TeXlive 2021, texdoc in Nixpkgs was broken, so we refer to 2021's texdoc in old versions
       // genAttrs [ "tl2020" "arxiv" ] (_: {
         overlaysBuilder = channels: [ (final: prev: {
           texlive =
@@ -139,25 +135,17 @@
       outputsBuilder = channels:
         let
           inherit (channels.default) system;
-          projName = "ancienTeX";
+          projName = "texshell";
         in {
           packages = with nixlib.lib;
             utils.lib.exportPackages self.overlays channels
             // flip mapAttrs' channels
-              (name': channel: rec {
-                name = "devshell/${name'}";
+              (name: channel: {
+                inherit name;
                 value = channel.texlive.mkShell { name = "${projName}/${name}"; };
-              })
-            // { default = self.packages.${system}."devshell/default"; };
+              });
 
           overlay = self.overlays."default/texlive";
-
-          apps = {
-            texdoc = utils.lib.mkApp { # use this when using texlive <= 2020. Since 2021, texdoc works natively
-              drv = self.devShells.${system}.nixos;
-              exePath = "/bin/texdoc";
-            };
-          };
         };
 
       templates.default = {
