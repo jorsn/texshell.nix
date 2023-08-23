@@ -142,7 +142,10 @@
             // flip mapAttrs' channels
               (name: channel: {
                 inherit name;
-                value = channel.texlive.mkShell { name = "${projName}/${name}"; };
+                value = channel.texlive.mkShell {
+                  name = "${projName}/${name}";
+                  packages = with channel; [ gnumake ]; # make is often needed
+                };
               });
 
           overlay = self.overlays."default/texlive";
