@@ -17,18 +17,16 @@
     # nixpkgs
 
     unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    nixos.url = "github:NixOS/nixpkgs/release-22.11";
+    nixos.url = "github:NixOS/nixpkgs/release-23.05";
+    tl2022.follows = "nixos";
     tl2021.url # latest nixpkgs commit with texlive 2021
       = "github:NixOS/nixpkgs/cb2f60a2d13a9da2510fa172c0e69ccbf14f18b7";
-    tl2020.url # latest nixpkgs commit with texlive 2020
-      = "github:NixOS/nixpkgs/ca44268569be4eb348b24bc0705e0482b9ea87a1";
     tl2012.url # latest nixpkgs commit with texlive 2012 (nearest to ScholarOne's 2013)
       = "github:NixOS/nixpkgs/4dee7de246e6037d494d798efd2a383d9fccc8cc";
     tl2012.flake = false;
 
     ## defaults
-    tl2022.follows = "unstable";
-    arxiv.follows = "tl2020"; # see https://arxiv.org/help/faq/texlive
+    arxiv.follows = "tl2022"; #TODO: arXiv has 2023 but Nixpkgs only 2022 so far # see https://arxiv.org/help/faq/texlive
     nixpkgs.follows = "nixos";
     default.follows = "nixpkgs";
 
@@ -73,25 +71,10 @@
               };
           })
         ];
-      }
-      # prior to TeXlive 2021, texdoc in Nixpkgs was broken, so we refer to 2021's texdoc in old versions
-      // genAttrs [ "tl2020" "arxiv" ] (_: {
-        overlaysBuilder = channels: [ (final: prev: {
-          texlive =
-            prev.texlive
-            // {
-              mkShell =
-                { name
-                , texdocCmd ? "${channels.default.texlive.combined.scheme-full}/bin/texdoc"
-                , ...
-                }@args:
-                prev.texlive.mkShell (args // { inherit texdocCmd; });
-            };
-        }) ];
-      });
+      };
 
       sharedOverlays = [
-        devshell.overlay
+        devshell.overlays.default
         (final: prev: with nixlib.lib; {
           texlive = optionalAttrs (prev ? texlive) prev.texlive
             // {
@@ -116,19 +99,19 @@
           texlive =
             let
               tl = prev.texlive;
-              tlDoc = recursiveUpdate tl {
+            in
+              recursiveUpdate tl {
                 combined.scheme-full = tl.combine {
-                  inherit (tl) scheme-full;
+                  inherit (final.texlive) scheme-full;
 
-                  pkgFilter = pkg:
-                    pkg.tlType != "source"
+                  pkgFilter = p:
+                    p.tlType != "source"
                     # add documentation to texlive
                     # texdoc doesn't work in texlive <= 2020 from nixpkgs.
                     # prevent double doc packages
-                    && pkg.pname == "core" -> pkg.tlType != "doc";
+                    && p.pname == "core" -> p.tlType != "doc";
                 };
               };
-            in if tl ? bin && toInt tl.bin.core.version >= 2021 then tlDoc else tl;
         })
       ];
 
