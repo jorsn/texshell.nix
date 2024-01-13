@@ -1,17 +1,28 @@
 # texshell.nix
 
 This [Nix] [flake] provides easy access to development shells for
-multiple [TeXlive] versions. This is important in particular for academic
-publishing, since, e.g. [arXiv][arXiv TeXlive] uses TeXlive 2020
-and [ScholarOne] still uses TeXlive 2013 (we provide 2012 as best working
+multiple [TeXlive] versions. This is sometimes important, in particular for
+academic publishing when submitting the LaTeX source to publishers using different
+TeXlive versions. For example, [arXiv][arXiv TeXlive] used TeXlive 2020
+for a while, while at the same time Overleaf used 2022,
+Quantum Information Processing used 2023 and
+[ScholarOne] still uses TeXlive 2013 (we provide 2012 as best working
 approximation in Nixpkgs).
-
 
 [Nix]: https://nixos.org
 [flake]: https://nixos.org/manual/nix/unstable/command-ref/new-cli/nix3-flake.html
 [TeXlive]: https://tug.org/texlive/
 [arXiv TeXlive]: https://arxiv.org/help/faq/texlive
 [ScholarOne]: https://clarivate.com/webofsciencegroup/wp-content/uploads/sites/2/2020/09/Author-LaTex-File-Upload-Manual-ScholarOne-Manuscripts.pdf
+
+
+## Available TeXlive versions
+
+Current available versions in TeXshell: 2012, 2021, 2022.
+2020 was removed when arXiv switched to 2022, because after 2012 until 2020,
+`texdoc` didn't work in the TeXlive provided by nixpkgs, and we had a complicated workaround.
+
+arXiv currently uses 2023, but we use 2022 for arXiv, as it is the newest version in Nixpkgs.
 
 
 ## Usage
@@ -29,7 +40,7 @@ Then, to get, e.g., TeXlive 2020, run
 ~~~
 $ nix shell texshell#tl2020
 ~~~
-To have the same TeXlive version as [arXiv] currently uses, run 
+To have (almost, see above) the same TeXlive version as [arXiv] currently uses, run 
 ~~~
 $ nix shell texshell#arxiv
 ~~~
