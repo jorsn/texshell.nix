@@ -17,7 +17,8 @@
     # nixpkgs
 
     unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    nixos.url = "github:NixOS/nixpkgs/release-23.05";
+    nixos.url  = "github:NixOS/nixpkgs/release-23.11";
+    tl2023.follows = "unstable";
     tl2022.follows = "nixos";
     tl2021.url # latest nixpkgs commit with texlive 2021
       = "github:NixOS/nixpkgs/cb2f60a2d13a9da2510fa172c0e69ccbf14f18b7";
@@ -26,8 +27,8 @@
     tl2012.flake = false;
 
     ## defaults
-    arxiv.follows = "tl2022"; #TODO: arXiv has 2023 but Nixpkgs only 2022 so far # see https://arxiv.org/help/faq/texlive
-    nixpkgs.follows = "nixos";
+    arxiv.follows = "tl2023";
+    nixpkgs.follows = "tl2023";
     default.follows = "nixpkgs";
 
   };

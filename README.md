@@ -18,11 +18,11 @@ approximation in Nixpkgs).
 
 ## Available TeXlive versions
 
-Current available versions in TeXshell: 2012, 2021, 2022.
+Current available versions in TeXshell: 2012, 2021, 2022, 2023 (default).
 2020 was removed when arXiv switched to 2022, because after 2012 until 2020,
 `texdoc` didn't work in the TeXlive provided by nixpkgs, and we had a complicated workaround.
 
-arXiv currently uses 2023, but we use 2022 for arXiv, as it is the newest version in Nixpkgs.
+arXiv currently uses 2023.
 
 
 ## Usage
@@ -36,9 +36,9 @@ The command can even be simplified by registering texshell in the flake registry
 ~~~
 $ nix registry add texshell github:jorsn/texshell.nix
 ~~~
-Then, to get, e.g., TeXlive 2020, run
+Then, to get, e.g., TeXlive 2022, run
 ~~~
-$ nix shell texshell#tl2020
+$ nix shell texshell#tl2022
 ~~~
 To have (almost, see above) the same TeXlive version as [arXiv] currently uses, run 
 ~~~
