@@ -17,9 +17,12 @@
     # nixpkgs
 
     unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    nixos.url  = "github:NixOS/nixpkgs/release-23.11";
+    nixos.url  = "github:NixOS/nixpkgs/release-24.05";
+    nixos-2311.url  = "github:NixOS/nixpkgs/release-23.11";
+
     tl2023.follows = "unstable";
-    tl2022.follows = "nixos";
+    tl2022.url # latest nixpkgs commit with texlive 2022 that is prebuilt by hydra
+      = "github:NixOS/nixpkgs/62b78e643ce4f7c8d2c62bec040686ba311eb76c";
     tl2021.url # latest nixpkgs commit with texlive 2021
       = "github:NixOS/nixpkgs/cb2f60a2d13a9da2510fa172c0e69ccbf14f18b7";
     tl2012.url # latest nixpkgs commit with texlive 2012 (nearest to ScholarOne's 2013)
